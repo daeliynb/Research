@@ -59,32 +59,32 @@ def summarize_by_factor(df, factor, value_col, metric_name):
 
 ## WEIGHTED SUMMARY STATS
 def summarize_weighted_by_factor(df, factor, metric_name):
+    
+    if metric_name == "Growth Rate":
+        success_col = COL_GROWTH
+        rate_col = "Growth Rate"
+    elif metric_name == "Contamination Rate":
+        success_col = COL_CONTAM
+        rate_col = "Contamination Rate"
+
     summary = (
         df.groupby(factor)
         .agg(
             replicates=(COL_TOTAL, "count"),
             total_plants=(COL_TOTAL, "sum"),
-            total_growth=(COL_GROWTH, "sum"),
-            total_contam=(COL_CONTAM, "sum"),
-            growth_std=("Growth Rate", "std"),
-            contamination_std=("Contamination Rate", "std")
+            total_metric=(success_col, "sum"),
+            std=(rate_col, "std")
         )
         .reset_index()
     )
 
-    summary["weighted_growth_rate"] = summary["total_growth"] / summary["total_plants"]
-    summary["weighted_contamination_rate"] = summary["total_contam"] / summary["total_plants"]
+    summary["weighted_rate"] = summary["total_metric"] / summary["total_plants"]
 
     summary = summary.rename(columns={factor: "level"})
     summary.insert(0, "factor", factor)
     summary.insert(1, "metric", metric_name)
 
-    if metric_name == "Growth Rate":
-        summary = summary.sort_values(by="weighted_growth_rate", ascending=False)
-    elif metric_name == "Contamination Rate":
-        summary = summary.sort_values(by="weighted_contamination_rate", ascending=False)
-
-    summary = summary.reset_index(drop=True)
+    summary = summary.sort_values(by="weighted_rate", ascending=False).reset_index(drop=True)
 
     return summary
 
@@ -175,12 +175,9 @@ overall_weighted = pd.DataFrame([
         "level": "All Treatments",
         "replicates": df[COL_TOTAL].count(),
         "total_plants": df[COL_TOTAL].sum(),
-        "total_growth": df[COL_GROWTH].sum(),
-        "total_contam": df[COL_CONTAM].sum(),
-        "growth_std": df["Growth Rate"].std(),
-        "contamination_std": df["Contamination Rate"].std(),
-        "weighted_growth_rate": df[COL_GROWTH].sum() / df[COL_TOTAL].sum(),
-        "weighted_contamination_rate": df[COL_CONTAM].sum() / df[COL_TOTAL].sum()
+        "total_metric": df[COL_GROWTH].sum(),
+        "std": df["Growth Rate"].std(),
+        "weighted_rate": df[COL_GROWTH].sum() / df[COL_TOTAL].sum()
     },
     {
         "factor": "Overall",
@@ -188,12 +185,9 @@ overall_weighted = pd.DataFrame([
         "level": "All Treatments",
         "replicates": df[COL_TOTAL].count(),
         "total_plants": df[COL_TOTAL].sum(),
-        "total_growth": df[COL_GROWTH].sum(),
-        "total_contam": df[COL_CONTAM].sum(),
-        "growth_std": df["Growth Rate"].std(),
-        "contamination_std": df["Contamination Rate"].std(),
-        "weighted_growth_rate": df[COL_GROWTH].sum() / df[COL_TOTAL].sum(),
-        "weighted_contamination_rate": df[COL_CONTAM].sum() / df[COL_TOTAL].sum()
+        "total_metric": df[COL_CONTAM].sum(),
+        "std": df["Contamination Rate"].std(),
+        "weighted_rate": df[COL_CONTAM].sum() / df[COL_TOTAL].sum()
     }
 ])
 
