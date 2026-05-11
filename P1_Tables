@@ -1,0 +1,124 @@
+## TABLE CODE FOR ATTATCHED TABLES 1-3
+def collapse_unique(x):
+    vals = x.dropna().astype(str).unique()
+    return "; ".join(vals)
+
+
+## TABLE 1 — MEDIA COMPOSITION
+table1_media = (
+    df.groupby(FAC_TRIAL)
+    .agg({
+        FAC_SUC: collapse_unique,
+        FAC_N: collapse_unique,
+        FAC_SW: collapse_unique,
+        FAC_PPM: collapse_unique,
+        FAC_KIN: collapse_unique,
+        FAC_BUF: collapse_unique
+    })
+    .reset_index()
+    .rename(columns={
+        FAC_TRIAL: "Trial",
+        FAC_SUC: "Sucrose concentration",
+        FAC_N: "Nitrogen source",
+        FAC_SW: "Seawater concentration",
+        FAC_PPM: "PPM™",
+        FAC_KIN: "Kinetin",
+        FAC_BUF: "MOPS"
+    })
+)
+
+table1_media.to_csv("PeerJ_Table1_Media_Composition.csv", index=False)
+display(table1_media)
+
+
+## TABLE 2 — STERILIZATION METHOD AND LEAF RETENTION
+table2_explant = (
+    df.groupby(FAC_TRIAL)
+    .agg({
+        FAC_STER: collapse_unique,
+        FAC_LEAVES: collapse_unique
+    })
+    .reset_index()
+    .rename(columns={
+        FAC_TRIAL: "Trial",
+        FAC_STER: "Sterilization treatment",
+        FAC_LEAVES: "Leaves retained"
+    })
+)
+
+table2_explant.to_csv("PeerJ_Table2_Explant_Sterilization.csv", index=False)
+display(table2_explant)
+
+
+## TABLE 3 — WEIGHTED RESULTS + STD + POWER
+
+## MATCHES WEIGHTED SUMMARY TO POWER ANALYSIS
+weighted_for_table3 = (
+    weighted_summary[
+        weighted_summary["factor"] != "Overall"
+    ]
+    .copy()
+)
+weighted_for_table3["Metric_merge"] = weighted_for_table3["metric"].replace({
+    "Growth Rate": "Growth",
+    "Contamination Rate": "Contamination"
+})
+
+power_for_table3 = power_analysis_summary.copy()
+
+table3_results = weighted_for_table3.merge(
+    power_for_table3[
+        [
+            "Factor",
+            "Treatment Level",
+            "Metric",
+            "Observed_Power",
+            "Required_n_per_group_80pct_power"
+        ]
+    ],
+    left_on=["factor", "level", "Metric_merge"],
+    right_on=["Factor", "Treatment Level", "Metric"],
+    how="left"
+)
+
+table3_results = table3_results[
+    [
+        "factor",
+        "Metric_merge",
+        "level",
+        "total_plants",
+        "weighted_rate",
+        "std",
+        "Observed_Power",
+        "Required_n_per_group_80pct_power"
+    ]
+].rename(columns={
+    "factor": "Factor",
+    "Metric_merge": "Metric",
+    "level": "Treatment",
+    "total_plants": "Replicates (total plants)",
+    "weighted_rate": "Weighted result",
+    "std": "Standard deviation",
+    "Observed_Power": "Observed power",
+    "Required_n_per_group_80pct_power": "Required n per group for 80% power"
+})
+
+## CONVERTS THE RATE TO PERCENTAGES
+table3_results["Weighted result (%)"] = table3_results["Weighted result"] * 100
+table3_results["Standard deviation (%)"] = table3_results["Standard deviation"] * 100
+
+table3_results = table3_results[
+    [
+        "Factor",
+        "Metric",
+        "Treatment",
+        "Replicates (total plants)",
+        "Weighted result (%)",
+        "Standard deviation (%)",
+        "Observed power",
+        "Required n per group for 80% power"
+    ]
+]
+
+table3_results.to_csv("PeerJ_Table3_Weighted_Results_Power.csv", index=False)
+display(table3_results)
